@@ -55,12 +55,7 @@ rcsid[] = "$Id: i_unix.c,v 1.5 1997/02/03 22:45:10 b1 Exp $";
 
 #include "doomdef.h"
 
-// UNIX hack, to be removed.
-#ifdef SNDSERV
-// Separate sound server process.
-FILE*	sndserver=0;
-char*	sndserver_filename = "./sndserver ";
-#elif SNDINTR
+#ifdef SNDINTR
 
 // Update all 30 millisecs, approx. 30fps synchronized.
 // Linux resolution is allegedly 10 millisecs,
@@ -98,9 +93,6 @@ static int flag = 0;
 
 // The actual lengths of all sound effects.
 int 		lengths[NUMSFX];
-
-// The actual output device.
-int	audio_fd;
 
 // The global mixing buffer.
 // Basically, samples from all active internal channels
@@ -475,26 +467,16 @@ I_StartSound
 
   // UNUSED
   priority = 0;
-  
-#ifdef SNDSERV 
-    if (sndserver)
-    {
-	fprintf(sndserver, "p%2.2x%2.2x%2.2x%2.2x\n", id, pitch, vol, sep);
-	fflush(sndserver);
-    }
-    // warning: control reaches end of non-void function.
-    return id;
-#else
+
     // Debug.
     //fprintf( stderr, "starting sound %d", id );
-    
+
     // Returns a handle (not used).
     id = addsfx( id, vol, steptable[pitch], sep );
 
     // fprintf( stderr, "/handle is %d\n", id );
-    
+
     return id;
-#endif
 }
 
 
@@ -576,9 +558,9 @@ void I_UpdateSound( void )
 	dl = 0;
 	dr = 0;
 
-	// Love thy L2 chache - made this a loop.
+	// Love thy L2 cache - made this a loop.
 	// Now more channels could be set at compile time
-	//  as well. Thus loop those  channels.
+	//  as well. Thus loop those channels.
 	for ( chan = 0; chan < NUM_CHANNELS; chan++ )
 	{
 	    // Check channel, if active.
@@ -663,7 +645,7 @@ void
 I_SubmitSound(void)
 {
   // Write it to DSP device.
-  write(audio_fd, mixbuffer, SAMPLECOUNT*BUFMUL);
+  printf("I_SubmitSound\n");
 }
 
 
@@ -688,15 +670,7 @@ I_UpdateSoundParams
 
 
 void I_ShutdownSound(void)
-{    
-#ifdef SNDSERV
-  if (sndserver)
-  {
-    // Send a "quit" command.
-    fprintf(sndserver, "q\n");
-    fflush(sndserver);
-  }
-#else
+{
   // Wait till all pending sounds are finished.
   int done = 0;
   int i;
@@ -719,8 +693,6 @@ void I_ShutdownSound(void)
 #endif
   
   // Cleaning up -releasing the DSP device.
-  close ( audio_fd );
-#endif
 
   // Done.
   return;
@@ -733,27 +705,7 @@ void I_ShutdownSound(void)
 
 void
 I_InitSound()
-{ 
-#ifdef SNDSERV
-  char buffer[256];
-  
-  if (getenv("DOOMWADDIR"))
-    sprintf(buffer, "%s/%s",
-	    getenv("DOOMWADDIR"),
-	    sndserver_filename);
-  else
-    sprintf(buffer, "%s", sndserver_filename);
-  
-  // start sound process
-  if ( !access(buffer, X_OK) )
-  {
-    strcat(buffer, " -quiet");
-    sndserver = popen(buffer, "w");
-  }
-  else
-    fprintf(stderr, "Could not start sound server [%s]\n", buffer);
-#else
-    
+{
   int i;
   
 #ifdef SNDINTR
@@ -763,33 +715,9 @@ I_InitSound()
     
   // Secure and configure sound device first.
   fprintf( stderr, "I_InitSound: ");
-  
-  audio_fd = open("/dev/dsp", O_WRONLY);
-  if (audio_fd<0)
-    fprintf(stderr, "Could not open /dev/dsp\n");
-  
-                     
-  i = 11 | (2<<16);                                           
-  myioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &i);
-  myioctl(audio_fd, SNDCTL_DSP_RESET, 0);
-  
-  i=SAMPLERATE;
-  
-  myioctl(audio_fd, SNDCTL_DSP_SPEED, &i);
-  
-  i=1;
-  myioctl(audio_fd, SNDCTL_DSP_STEREO, &i);
-  
-  myioctl(audio_fd, SNDCTL_DSP_GETFMTS, &i);
-  
-  if (i&=AFMT_S16_LE)    
-    myioctl(audio_fd, SNDCTL_DSP_SETFMT, &i);
-  else
-    fprintf(stderr, "Could not play signed 16 data\n");
 
   fprintf(stderr, " configured audio device\n" );
 
-    
   // Initialize external data (all sounds) at start, keep static.
   fprintf( stderr, "I_InitSound: ");
   
@@ -817,8 +745,6 @@ I_InitSound()
   
   // Finished initialization.
   fprintf(stderr, "I_InitSound: sound module ready\n");
-    
-#endif
 }
 
 
@@ -921,7 +847,6 @@ void I_HandleSoundTimer( int ignore )
   {
     // See I_SubmitSound().
     // Write it to DSP device.
-    write(audio_fd, mixbuffer, SAMPLECOUNT*BUFMUL);
 
     // Reset flag counter.
     flag = 0;

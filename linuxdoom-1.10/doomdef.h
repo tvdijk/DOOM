@@ -74,14 +74,8 @@ typedef enum
 // most parameter validation debugging code will not be compiled
 #define RANGECHECK
 
-// Do or do not use external soundserver.
-// The sndserver binary to be run separately
-//  has been introduced by Dave Taylor.
-// The integrated sound support is experimental,
-//  and unfinished. Default is synchronous.
 // Experimental asynchronous timer based is
-//  handled by SNDINTR. 
-#define SNDSERV  1
+// handled by SNDINTR.
 //#define SNDINTR  1
 
 
