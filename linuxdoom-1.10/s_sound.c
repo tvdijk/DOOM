@@ -166,15 +166,14 @@ void S_Init
 
   fprintf( stderr, "S_Init: default sfx volume %d\n", sfxVolume);
 
-  // Whatever these did with DMX, these are rather dummies now.
-  I_SetChannels();
+  I_SetChannels(numChannels);
   
   S_SetSfxVolume(sfxVolume);
   // No music with Linux - another dummy.
   S_SetMusicVolume(musicVolume);
 
   // Allocating the internal channels for mixing
-  // (the maximum numer of sounds rendered
+  // (the maximum number of sounds rendered
   // simultaneously) within zone memory.
   channels =
     (channel_t *) Z_Malloc(numChannels*sizeof(channel_t), PU_STATIC, 0);
@@ -386,12 +385,14 @@ S_StartSoundAtVolume
   
   // Assigns the handle to one of the channels in the
   //  mix/output buffer.
-  channels[cnum].handle = I_StartSound(sfx_id,
-				       /*sfx->data,*/
-				       volume,
-				       sep,
-				       pitch,
-				       priority);
+  channels[cnum].handle = I_StartSound(
+           cnum,
+           sfx_id,
+           /*sfx->data,*/
+           volume,
+           sep,
+           pitch,
+           priority);
 }	
 
 void

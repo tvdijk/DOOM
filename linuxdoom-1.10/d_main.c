@@ -394,7 +394,7 @@ void D_DoomLoop (void)
 	// Update display, next frame, with current state.
 	D_Display ();
 
-	// Sound mixing for the buffer is snychronous.
+	// Sound mixing for the buffer is synchronous.
 	I_UpdateSound();
 
 	// Synchronous sound output is explicitly called.

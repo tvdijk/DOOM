@@ -68,4 +68,5 @@ target_include_directories(DOOM
 
 target_link_libraries(DOOM
         /opt/X11/lib/libX11.dylib
-        /opt/X11/lib/libXext.dylib)
+        /opt/X11/lib/libXext.dylib
+        "-framework AudioToolbox")

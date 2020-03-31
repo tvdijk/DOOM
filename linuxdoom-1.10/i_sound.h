@@ -36,7 +36,7 @@ void I_InitSound();
 void I_UpdateSound(void);
 void I_SubmitSound(void);
 
-// ... shut down and relase at program termination.
+// ... shut down and release at program termination.
 void I_ShutdownSound(void);
 
 
@@ -44,8 +44,8 @@ void I_ShutdownSound(void);
 //  SFX I/O
 //
 
-// Initialize channels?
-void I_SetChannels();
+// Initialize channels
+void I_SetChannels(int numChannels);
 
 // Get raw data lump index for sound descriptor.
 int I_GetSfxLumpNum (sfxinfo_t* sfxinfo );
@@ -54,7 +54,9 @@ int I_GetSfxLumpNum (sfxinfo_t* sfxinfo );
 // Starts a sound in a particular sound channel.
 int
 I_StartSound
-( int		id,
+(
+  int       handle,
+  int		id,
   int		vol,
   int		sep,
   int		pitch,
