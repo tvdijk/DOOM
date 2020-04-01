@@ -44,7 +44,7 @@
 int 		lengths[NUMSFX];
 
 AudioQueueRef* queues;
-//AudioQueueBufferRef buffers[NUMSFX];
+AudioQueueBufferRef** buffers;
 
 void MyAudioQueueOutputCallback(
         void* inUserData,
@@ -52,13 +52,6 @@ void MyAudioQueueOutputCallback(
         AudioQueueBufferRef inBuffer)
 {
     printf("AudioQueueOutputCallback");
-    // TODO Free buffer?
-    OSStatus s = AudioQueueFreeBuffer(inAQ, inBuffer);
-    if (s != 0)
-    {
-        fprintf(stderr, "Uh oh: [%d]", s);
-        assert(0);
-    }
 }
 
 //
@@ -85,7 +78,7 @@ getsfx
     // I do not do runtime patches to that
     //  variable. Instead, we will use a
     //  default sound for replacement.
-    int  sfxlump;
+    int sfxlump;
     if ( W_CheckNumForName(name) == -1 )
       sfxlump = W_GetNumForName("dspistol");
     else
@@ -104,6 +97,7 @@ getsfx
 void I_SetChannels(int numChannels)
 {
     queues = Z_Malloc((int)sizeof(AudioQueueRef) * numChannels, PU_STATIC, NULL);
+    buffers = Z_Malloc((int)sizeof(AudioQueueBufferRef*) * numChannels, PU_STATIC, NULL);
 
     for (int i = 0; i < numChannels; ++i)
     {
@@ -123,8 +117,19 @@ void I_SetChannels(int numChannels)
                 NULL,
                 NULL,
                 NULL,
-                0, &queues[i]);
+                0,
+                &queues[i]);
         assert(s == 0);
+
+        buffers[i] = Z_Malloc(sizeof(AudioQueueBufferRef) * NUMSFX, PU_STATIC, NULL);
+        for (int j = 1; j < NUMSFX; ++j)
+        {
+            OSStatus status = AudioQueueAllocateBuffer(queues[i], lengths[j], &buffers[i][j]);
+            assert(status == 0);
+
+            buffers[i][j]->mAudioDataByteSize = buffers[i][j]->mAudioDataBytesCapacity;
+            memcpy(buffers[i][j]->mAudioData, S_sfx[j].data, buffers[i][j]->mAudioDataByteSize);
+        }
     }
 }
 
@@ -158,14 +163,7 @@ I_StartSound
   int		pitch,
   int		priority )
 {
-    AudioQueueBufferRef buffer;
-    OSStatus status = AudioQueueAllocateBuffer(queues[handle], lengths[id], &buffer);
-    assert(status == 0);
-
-    buffer->mAudioDataByteSize = buffer->mAudioDataBytesCapacity;
-    memcpy(buffer->mAudioData, S_sfx[id].data, buffer->mAudioDataByteSize);
-
-    OSStatus s = AudioQueueEnqueueBuffer(queues[handle], buffer, 0, NULL);
+    OSStatus s = AudioQueueEnqueueBuffer(queues[handle], buffers[handle][id], 0, NULL);
     if (s != 0)
     {
         fprintf(stderr, "Error enqueuing buffer: [%d] on channel: [%d]", s, handle);
@@ -180,11 +178,6 @@ I_StartSound
 
     // Debug.
     fprintf( stderr, "I_StartSound id: [%d] on channel: [%d]\n", id, handle );
-
-    // Returns a handle (not used).
-    //id = addsfx( id, vol, steptable[pitch], sep );
-
-    //fprintf( stderr, "I_StartSound handle: [%d]\n", id );
 
     return handle;
 }
@@ -328,12 +321,6 @@ int I_QrySongPlaying(int handle)
   handle = 0;
   return looping || musicdies > gametic;
 }
-
-//
-// Experimental stuff.
-// A Linux timer interrupt, for asynchronous
-//  sound output.
-typedef     int             tSigSet;
 
 // We might use SIGVTALRM and ITIMER_VIRTUAL, if the process
 //  time independend timer happens to get lost due to heavy load.
