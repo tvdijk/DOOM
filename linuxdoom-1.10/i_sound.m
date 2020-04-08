@@ -34,7 +34,7 @@
 
 #include "doomdef.h"
 
-#include <AudioToolbox/AudioQueue.h>
+@import AudioToolbox;
 
 #define SAMPLERATE		    11025	// Hz
 #define DMX_HEADER_SIZE     8

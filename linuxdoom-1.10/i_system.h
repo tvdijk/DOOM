@@ -49,7 +49,7 @@ int I_GetTime (void);
 // Called by D_DoomLoop,
 // called before processing any tics in a frame
 // (just after displaying a frame).
-// Time consuming syncronous operations
+// Time consuming synchronous operations
 // are performed here (joystick reading).
 // Can call D_PostEvent.
 //

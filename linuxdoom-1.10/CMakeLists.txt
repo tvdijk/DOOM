@@ -1,5 +1,7 @@
 add_compile_definitions(NORMALUNIX LINUX)
 
+add_compile_options(-fmodules)
+
 add_executable(DOOM
         am_map.c
         i_main.c
@@ -14,9 +16,9 @@ add_executable(DOOM
         hu_lib.c
         hu_stuff.c
         i_net.c
-        i_sound.c
+        i_sound.m
         i_system.c
-        i_video.c
+        i_video.m
         info.c
         m_argv.c
         m_bbox.c
@@ -61,12 +63,3 @@ add_executable(DOOM
         w_wad.c
         wi_stuff.c
         z_zone.c)
-
-target_include_directories(DOOM
-        PRIVATE
-            /opt/X11/include)
-
-target_link_libraries(DOOM
-        /opt/X11/lib/libX11.dylib
-        /opt/X11/lib/libXext.dylib
-        "-framework AudioToolbox")

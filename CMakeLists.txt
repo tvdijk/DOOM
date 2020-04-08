@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(DOOM C)
+project(DOOM)
 
 set(CMAKE_C_STANDARD 11)
 
