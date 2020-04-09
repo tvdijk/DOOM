@@ -21,10 +21,12 @@
 //
 //-----------------------------------------------------------------------------
 
+#include "d_main.h"
 #include "i_system.h"
 #include "v_video.h"
 #include "z_zone.h"
 
+@import Carbon;
 @import MetalKit;
 
 MTKView* view;
@@ -33,6 +35,7 @@ int pixelByteCount = sizeof(uint32_t) * SCREENWIDTH * SCREENHEIGHT;
 uint32_t* pixels;
 uint8_t* palette;
 MTLRegion region;
+NSEventModifierFlags currentModifierFlags = 0;
 
 void I_ShutdownGraphics(void)
 {
@@ -44,15 +47,121 @@ void I_StartFrame (void)
     //fprintf(stderr, "I_StartFrame\n");
 }
 
+int translateKey(unsigned short keyCode, NSString* characters)
+{
+    switch (keyCode) {
+        case kVK_UpArrow:
+            return KEY_UPARROW;
+        case kVK_LeftArrow:
+            return KEY_LEFTARROW;
+        case kVK_RightArrow:
+            return KEY_RIGHTARROW;
+        case kVK_DownArrow:
+            return KEY_DOWNARROW;
+        case kVK_Return:
+            return KEY_ENTER;
+        case kVK_Escape:
+            return KEY_ESCAPE;
+        case kVK_Tab:
+            return KEY_TAB;
+        case kVK_ANSI_Minus:
+            return KEY_MINUS;
+        case kVK_F1:
+            return KEY_F1;
+        case kVK_F2:
+            return KEY_F2;
+        case kVK_F3:
+            return KEY_F3;
+        case kVK_F4:
+            return KEY_F4;
+        case kVK_F5:
+            return KEY_F5;
+        case kVK_F6:
+            return KEY_F6;
+        case kVK_F7:
+            return KEY_F7;
+        case kVK_F8:
+            return KEY_F8;
+        case kVK_F9:
+            return KEY_F9;
+        case kVK_F10:
+            return KEY_F10;
+        case kVK_F11:
+            return KEY_F11;
+        case kVK_F12:
+            return KEY_F12;
+        default:
+        {
+            unichar c = [characters characterAtIndex:0];
+            if (c >= ' ' && c <= 'z')
+            {
+                return c;
+            }
+            fprintf(stderr, "Unknown key code: %d", keyCode);
+            return keyCode;
+        }
+    }
+}
+
+void checkModifierKey(NSEventModifierFlags flags, NSEventModifierFlags modifier, int doomKey)
+{
+    if (flags & modifier)
+    {
+        if (!(currentModifierFlags & modifier))
+        {
+            event_t doomEvent;
+            doomEvent.type = ev_keydown;
+            doomEvent.data1 = doomKey;
+            D_PostEvent(&doomEvent);
+        }
+    }
+    else
+    {
+        if (currentModifierFlags & modifier)
+        {
+            event_t doomEvent;
+            doomEvent.type = ev_keyup;
+            doomEvent.data1 = doomKey;
+            D_PostEvent(&doomEvent);
+        }
+    }
+}
+
 void I_StartTic (void)
 {
     fprintf(stderr, "I_StartTic\n");
     NSEvent *event;
     while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:YES])) {
-        
+
         NSLog(@"%@", event);
-        
-        [NSApp sendEvent:event];
+        switch (event.type) {
+            case NSEventTypeKeyDown:
+            {
+                event_t doomEvent;
+                doomEvent.type = ev_keydown;
+                doomEvent.data1 = translateKey(event.keyCode, event.characters);
+                D_PostEvent(&doomEvent);
+            }
+                break;
+            case NSEventTypeKeyUp:
+            {
+                event_t doomEvent;
+                doomEvent.type = ev_keyup;
+                doomEvent.data1 = translateKey(event.keyCode, event.characters);
+                D_PostEvent(&doomEvent);
+
+            }
+                break;
+            case NSEventTypeFlagsChanged:
+                checkModifierKey(event.modifierFlags, NSEventModifierFlagControl, KEY_RCTRL);
+                checkModifierKey(event.modifierFlags, NSEventModifierFlagOption, KEY_LALT);
+                checkModifierKey(event.modifierFlags, NSEventModifierFlagShift, KEY_RSHIFT);
+                currentModifierFlags = event.modifierFlags;
+                break;
+            default:
+                [NSApp sendEvent:event];
+                break;
+        }
         [NSApp updateWindows];
     }
 }
